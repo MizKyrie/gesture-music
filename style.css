@@ -1,0 +1,1004 @@
+:root {
+  --bg: #0b0e14;
+  --accent: #5eead4;
+  --accent2: #a5b4fc;
+  --accent-soft: rgba(94, 234, 212, 0.15);
+  /* 苹果毛玻璃 */
+  --glass: rgba(255, 255, 255, 0.07);
+  --glass-strong: rgba(255, 255, 255, 0.11);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-strong: rgba(255, 255, 255, 0.25);
+  --text: #f1f5f9;
+  --sharp: #fcd34d;
+  --flat: #7dd3fc;
+}
+
+* { box-sizing: border-box; }
+
+button, select, input {
+  font-family: inherit;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background:
+    radial-gradient(ellipse at 15% 0%, rgba(94,234,212,0.07), transparent 45%),
+    radial-gradient(ellipse at 85% 100%, rgba(165,180,252,0.08), transparent 45%),
+    var(--bg);
+  color: var(--text);
+  /* 中文优先用 Noto Sans SC，英文/数字由 Bungee 负责（各显示组件单独声明） */
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-weight: 500;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+}
+
+#webcam { display: none; }
+
+#overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: filter 0.4s ease;
+}
+#overlay.dimmed {
+  filter: grayscale(1) brightness(0.45);
+}
+
+/* ---------- 顶部级数按钮栏（左手）· 毛玻璃胶囊 ---------- */
+#degreeBar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 6;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  padding: 7px 9px;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.10);
+}
+.degree-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid transparent;
+  border-radius: 15px;
+  padding: 8px 10px;
+  text-align: center;
+  color: rgba(241, 245, 249, 0.75);
+  min-width: 56px;
+  transition: transform 0.18s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.18s, border-color 0.18s, background 0.18s, color 0.18s;
+}
+.degree-btn .gesture { font-size: 24px; line-height: 1; }
+.degree-btn .degree { font-family: "Bungee", "Arial Black", sans-serif; font-size: 15px; font-weight: 400; margin-top: 5px; letter-spacing: 0.05em; }
+.degree-btn .note { font-family: "Bungee", "Arial Black", sans-serif; font-size: 12px; font-weight: 400; opacity: 0.7; margin-top: 2px; }
+.degree-btn.active {
+  background: rgba(94, 234, 212, 0.18);
+  border-color: rgba(94, 234, 212, 0.65);
+  color: var(--accent);
+  box-shadow: 0 4px 20px rgba(94, 234, 212, 0.28), inset 0 1px 0 rgba(255,255,255,0.15);
+  transform: translateY(-2px) scale(1.06);
+}
+.degree-btn.active.sharp {
+  background: rgba(252, 211, 77, 0.16);
+  border-color: rgba(252, 211, 77, 0.65);
+  color: var(--sharp);
+  box-shadow: 0 4px 20px rgba(252, 211, 77, 0.28);
+}
+.degree-btn.active.flat {
+  background: rgba(125, 211, 252, 0.16);
+  border-color: rgba(125, 211, 252, 0.65);
+  color: var(--flat);
+  box-shadow: 0 4px 20px rgba(125, 211, 252, 0.28);
+}
+
+/* ---------- 升降半音提示 · 毛玻璃胶囊 ---------- */
+#accidentalHint {
+  position: absolute;
+  top: 106px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16px;
+  z-index: 6;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--glass);
+  padding: 6px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+#accidentalHint .up   { color: rgba(252,211,77,0.5); }
+#accidentalHint .mid  { color: rgba(94,234,212,0.5); }
+#accidentalHint .down { color: rgba(125,211,252,0.5); }
+#accidentalHint.sharp { background: rgba(252, 211, 77, 0.10); border-color: rgba(252, 211, 77, 0.4); }
+#accidentalHint.sharp .up   { color: var(--sharp); }
+#accidentalHint.sharp .mid  { color: rgba(94,234,212,0.3); }
+#accidentalHint.sharp .down { color: rgba(125,211,252,0.3); }
+#accidentalHint.flat  { background: rgba(125, 211, 252, 0.10); border-color: rgba(125, 211, 252, 0.4); }
+#accidentalHint.flat  .up   { color: rgba(252,211,77,0.3); }
+#accidentalHint.flat  .mid  { color: rgba(94,234,212,0.3); }
+#accidentalHint.flat  .down { color: var(--flat); }
+#accidentalHint.natural { border-color: var(--glass-border); }
+#accidentalHint.natural .mid { color: var(--accent); }
+
+/* ---------- 左上控制面板 · 苹果毛玻璃卡片 ---------- */
+#controls {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 6;
+  transition: width 0.35s cubic-bezier(0.25, 1, 0.5, 1), background 0.35s, border-color 0.35s, box-shadow 0.35s, padding 0.35s;
+}
+#controls.collapsed { width: 40px; }
+#controls:not(.collapsed) {
+  width: min(324px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  background:
+    radial-gradient(120% 60% at 20% 0%, rgba(255,255,255,0.16), transparent 45%),
+    linear-gradient(165deg, rgba(32,40,56,0.94), rgba(18,24,36,0.96) 45%, rgba(12,17,27,0.97));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 26px;
+  padding: 16px;
+  backdrop-filter: blur(50px) saturate(200%);
+  -webkit-backdrop-filter: blur(50px) saturate(200%);
+  box-shadow:
+    0 24px 80px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.28),
+    inset 0 -1px 0 rgba(255,255,255,0.06),
+    inset 0 0 0 1px rgba(255,255,255,0.03);
+}
+#controls.collapsed .ctrl,
+#controls.collapsed .ctrl-section,
+#controls.collapsed .controls-title,
+#controls.collapsed #headVolumeMeter,
+#controls.collapsed #guideToggle,
+#controls.collapsed #toneEditorBtn,
+#controls.collapsed #chordEditorBtn { display: none; }
+#controlsToggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--glass);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  font-size: 17px;
+  cursor: pointer;
+  flex-shrink: 0;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.18);
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.2s, background 0.2s;
+}
+#controls:not(.collapsed) #controlsToggle { transform: rotate(90deg); }
+#controlsToggle:hover { border-color: var(--glass-border-strong); background: var(--glass-strong); }
+.controls-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 4px 0;
+  pointer-events: none;
+}
+.controls-title-cn {
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.08em;
+}
+.controls-title-en {
+  font-family: "Bungee", "Arial Black", sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  color: rgba(94, 234, 212, 0.7);
+  letter-spacing: 0.22em;
+}
+.ctrl-section {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.ctrl-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: rgba(241, 245, 249, 0.45);
+  padding-left: 4px;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+.ctrl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.ctrl span {
+  color: var(--accent);
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+.ctrl select {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 7px;
+  outline: none;
+}
+.ctrl select option { background: #14181f; }
+.ctrl input[type="range"] { flex: 1; min-width: 60px; accent-color: var(--accent); }
+.ctrl-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+.ctrl-actions button {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+  padding-left: 4px;
+  padding-right: 4px;
+  font-size: 12px;
+}
+#guideToggle {
+  background: var(--glass);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  padding: 8px 6px;
+  white-space: nowrap;
+  cursor: pointer;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+#guideToggle:hover { border-color: var(--glass-border-strong); background: var(--glass-strong); transform: translateY(-1px); }
+.eq-ctrl span { min-width: 70px; }
+.eq-ctrl .eq-val {
+  color: var(--accent);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 44px;
+  text-align: right;
+}
+
+/* 音色编辑 / 和弦编辑 按钮：强调色填充 */
+#toneEditorBtn, #chordEditorBtn {
+  background: rgba(94, 234, 212, 0.14);
+  color: var(--accent);
+  border: 1px solid rgba(94, 234, 212, 0.4);
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  padding: 8px 6px;
+  white-space: nowrap;
+  cursor: pointer;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+#toneEditorBtn:hover, #chordEditorBtn:hover { background: rgba(94, 234, 212, 0.26); transform: translateY(-1px); }
+
+#volumeSlider {
+  width: 96px;
+  accent-color: var(--accent);
+}
+#volumeSlider:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 头部音量开关（苹果风 switch） */
+.toggle-ctrl { cursor: pointer; }
+.toggle-ctrl input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle-ctrl input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.toggle-ctrl input[type="checkbox"]:checked {
+  background: var(--accent);
+}
+.toggle-ctrl input[type="checkbox"]:checked::after {
+  transform: translateX(16px);
+}
+
+/* 头部音量指示 */
+#headVolumeMeter {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  min-height: 14px;
+  padding-left: 4px;
+}
+
+/* ---------- 手势说明面板 · 毛玻璃卡片 ---------- */
+#gestureGuide {
+  position: absolute;
+  top: 130px;
+  left: 16px;
+  display: flex;
+  gap: 14px;
+  z-index: 6;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 16px 18px;
+  font-size: 12px;
+  font-weight: 500;
+  max-width: min(460px, 90vw);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+#gestureGuide.hidden { display: none; }
+.guide-col h4 { margin: 0 0 8px; color: var(--accent); font-size: 13px; font-weight: 700; }
+.guide-col + .guide-col { border-left: 1px solid var(--glass-border); padding-left: 14px; }
+.guide-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 3px 0;
+  color: rgba(241, 245, 249, 0.7);
+}
+.guide-row b { color: var(--text); font-weight: 600; }
+.guide-row span { color: var(--accent); font-weight: 600; }
+
+/* ---------- 右上：当前属性 ---------- */
+#meters {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 6;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+#filterDisplay {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 7px 14px;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+
+/* 右上音量进度条 */
+#volumeBarWrap {
+  width: 130px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+#volumeBarFill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2dd4bf, #5eead4);
+  transition: width 0.08s linear, background 0.2s;
+}
+#volumeBarFill.muted {
+  background: rgba(255, 107, 107, 0.8);
+}
+
+/* ---------- 中央和弦显示 ---------- */
+#chordDisplay {
+  position: absolute;
+  bottom: 138px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ffffff;
+  font-family: "Bungee", "Arial Black", "PingFang SC", system-ui, sans-serif;
+  font-size: 54px;
+  font-weight: 400;
+  text-shadow: 0 2px 30px rgba(94, 234, 212, 0.55), 0 3px 8px rgba(0,0,0,0.75);
+  pointer-events: none;
+  letter-spacing: 0.04em;
+}
+#qualityDisplay {
+  position: absolute;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(241, 245, 249, 0.75);
+  font-size: 14px;
+  font-weight: 500;
+  pointer-events: none;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+}
+
+/* ---------- 钢琴键盘 · 底部毛玻璃条 ---------- */
+#pianoWrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 96px;
+  background: var(--glass);
+  border-top: 1px solid var(--glass-border);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  z-index: 5;
+}
+#piano {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+.key-white {
+  flex: 1;
+  background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.6));
+  border: 1px solid rgba(0,0,0,0.25);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  transition: background 0.12s, box-shadow 0.12s;
+  cursor: pointer;
+}
+.key-white:hover { background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.75)); }
+.key-white.active {
+  background: linear-gradient(180deg, #99f6e4, #5eead4);
+  box-shadow: 0 0 24px rgba(94, 234, 212, 0.6);
+}
+.key-black {
+  position: absolute;
+  top: 0;
+  height: 62%;
+  background: linear-gradient(180deg, rgba(20,24,31,0.95), rgba(5,8,12,0.98));
+  border: 1px solid rgba(0,0,0,0.6);
+  border-radius: 0 0 5px 5px;
+  z-index: 2;
+  transition: background 0.12s, box-shadow 0.12s;
+  cursor: pointer;
+}
+.key-black:hover { background: linear-gradient(180deg, rgba(40,48,60,0.98), rgba(12,16,24,0.98)); }
+.key-black.active {
+  background: linear-gradient(180deg, var(--accent2), #6366f1);
+  box-shadow: 0 0 22px rgba(165, 180, 252, 0.65);
+}
+
+/* ---------- 帮助按钮 / 弹窗 ---------- */
+#helpButton {
+  position: absolute;
+  bottom: 110px;
+  right: 18px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--glass);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 7;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  transition: border-color 0.2s, background 0.2s;
+}
+#helpButton:hover { border-color: var(--glass-border-strong); background: var(--glass-strong); }
+
+#helpModal {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 8, 14, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+#helpModal.hidden { display: none; }
+.help-content {
+  background: rgba(20, 24, 31, 0.75);
+  color: var(--text);
+  border: 1px solid var(--glass-border-strong);
+  border-radius: 24px;
+  width: min(560px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 28px 30px;
+  font-weight: 500;
+  backdrop-filter: blur(50px) saturate(180%);
+  -webkit-backdrop-filter: blur(50px) saturate(180%);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.help-content h2 { color: var(--accent); margin-top: 0; font-size: 22px; font-weight: 800; }
+.help-content h3 { color: var(--accent2); margin-bottom: 6px; font-size: 15px; font-weight: 700; }
+.help-content ul { margin: 4px 0 14px; padding-left: 22px; line-height: 1.7; font-size: 13px; }
+.help-content p { line-height: 1.7; font-size: 13px; }
+.help-content .tip {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+#closeHelp {
+  float: right;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 22px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+#closeHelp:hover { opacity: 1; }
+
+/* ---------- 音色/和弦编辑器弹窗 ---------- */
+#toneModal, #chordModal {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 7, 12, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 25;
+  pointer-events: none;
+}
+#toneModal.hidden, #chordModal.hidden { display: none; }
+#toneModal .editor-content, #chordModal .editor-content { pointer-events: auto; }
+#chordModal { align-items: flex-start; padding: 64px 16px 120px; }
+#chordModal .editor-content { max-height: calc(100dvh - 190px); width: min(680px, 94vw); }
+.editor-content {
+  background: linear-gradient(165deg, rgba(30,36,48,0.92), rgba(18,22,31,0.94));
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 24px;
+  width: min(500px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 24px 26px;
+  font-weight: 500;
+  backdrop-filter: blur(50px) saturate(180%);
+  -webkit-backdrop-filter: blur(50px) saturate(180%);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.editor-content h2 { color: var(--accent); margin: 0 0 14px; font-size: 20px; font-weight: 700; font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+.editor-close {
+  float: right;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 22px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.editor-close:hover { opacity: 1; }
+.editor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.editor-row > span { color: var(--accent); font-weight: 600; white-space: nowrap; font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+.editor-row em { color: rgba(241,245,249,0.5); font-size: 11px; }
+.editor-row select, .editor-row input {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 8px;
+  outline: none;
+  flex: 1;
+  min-width: 90px;
+}
+.editor-row select option { background: #14181f; }
+.editor-content button {
+  background: rgba(94, 234, 212, 0.14);
+  color: var(--accent);
+  border: 1px solid rgba(94, 234, 212, 0.4);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.editor-content button:hover { background: rgba(94, 234, 212, 0.24); }
+.editor-content button:disabled { opacity: 0.35; cursor: not-allowed; }
+.editor-params {
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.editor-params label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(241,245,249,0.75);
+  white-space: nowrap;
+}
+.editor-params input[type="range"] { flex: 1; accent-color: var(--accent); }
+.editor-params b { color: var(--accent); font-size: 11px; min-width: 58px; text-align: right; font-weight: 600; }
+
+/* 旋钮（knob）参数区 */
+.tone-hint {
+  margin: 10px 0 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(252, 211, 77, 0.75);
+  background: rgba(252, 211, 77, 0.08);
+  border-left: 3px solid rgba(252, 211, 77, 0.5);
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+#toneKnobs {
+  margin: 14px 0 10px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 14px 12px;
+}
+.knob {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  user-select: none;
+}
+.knob-svg {
+  width: 54px;
+  height: 54px;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.knob-body {
+  fill: rgba(255,255,255,0.05);
+  stroke: rgba(255,255,255,0.16);
+  stroke-width: 1.5;
+}
+.knob-track {
+  fill: none;
+  stroke: rgba(255,255,255,0.12);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+.knob-arc {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.05s linear;
+}
+.knob-ptr {
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.knob-label {
+  font-size: 10px;
+  color: rgba(241,245,249,0.6);
+  white-space: nowrap;
+}
+.knob-val {
+  font-size: 10px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 右上角波形可视化 */
+#scopeWrap {
+  width: 230px;
+  height: 74px;
+  border-radius: 12px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+#scope {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#chordRingList { display: flex; flex-direction: column; gap: 14px; margin: 12px 0; }
+.ring-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 12px 14px;
+  cursor: default;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.ring-edit.selected {
+  border-color: rgba(94,234,212,0.55);
+  background: rgba(94,234,212,0.07);
+  box-shadow: 0 0 0 1px rgba(94,234,212,0.15), 0 8px 30px rgba(0,0,0,0.25);
+}
+.ring-head { display: flex; align-items: center; gap: 8px; }
+.ring-index {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(94,234,212,0.7);
+  white-space: nowrap;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+.ring-edit .ring-label { flex: 1; min-width: 70px; font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+.ring-edit .ring-intervals { width: 100%; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.ring-edit .ring-voicing { flex: 1; min-width: 110px; }
+.ring-edit .ring-custom-voicing { width: 100%; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.ring-edit input, .ring-edit select {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 8px;
+  outline: none;
+}
+.ring-edit select option { background: #14181f; }
+.ring-tones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.ring-tones .suggest-title,
+.ring-voicing-suggest .suggest-title {
+  flex-basis: 100%;
+  font-size: 10px;
+  color: rgba(241,245,249,0.45);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+.ring-tone-chip {
+  background: rgba(255,255,255,0.06);
+  color: rgba(241,245,249,0.75);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.ring-tone-chip.on {
+  background: rgba(94,234,212,0.20);
+  border-color: rgba(94,234,212,0.65);
+  color: var(--accent);
+}
+.ring-voicing-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.ring-suggest-chip {
+  background: rgba(255,255,255,0.04);
+  color: rgba(241,245,249,0.6);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.ring-suggest-chip.on {
+  background: rgba(165,180,252,0.18);
+  border-color: rgba(165,180,252,0.55);
+  color: var(--accent2);
+}
+.ring-preview {
+  font-size: 12px;
+  color: rgba(94,234,212,0.85);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ring-audition {
+  background: rgba(94,234,212,0.14) !important;
+  color: var(--accent) !important;
+  border: 1px solid rgba(94,234,212,0.4) !important;
+  white-space: nowrap;
+}
+.ring-del {
+  background: none !important;
+  color: rgba(255,107,107,0.85) !important;
+  border: none !important;
+  padding: 2px 8px !important;
+  font-size: 16px !important;
+  cursor: pointer;
+}
+#chordAddRing {
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 2px dashed rgba(94,234,212,0.45);
+  border-radius: 14px;
+  background: rgba(94,234,212,0.06);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+#chordAddRing:hover { background: rgba(94,234,212,0.14); border-color: rgba(94,234,212,0.8); }
+#chordPiano {
+  display: flex;
+  gap: 2px;
+  padding: 10px 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  overflow-x: auto;
+  margin: 8px 0 6px;
+}
+.cp-key {
+  flex: 1 0 30px;
+  height: 58px;
+  border-radius: 0 0 5px 5px;
+  border: 1px solid rgba(0,0,0,0.4);
+  cursor: pointer;
+  font-size: 9px;
+  color: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+.cp-key.white {
+  background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.62));
+}
+.cp-key.black {
+  background: linear-gradient(180deg, rgba(30,34,42,0.95), rgba(5,8,12,0.98));
+  color: rgba(255,255,255,0.5);
+  height: 36px;
+}
+.cp-key.on {
+  background: linear-gradient(180deg, #99f6e4, #5eead4);
+  box-shadow: 0 0 14px rgba(94,234,212,0.55);
+}
+
+/* ---------- 开始遮罩 ---------- */
+#startOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 8, 14, 0.55);
+  backdrop-filter: blur(30px) saturate(150%);
+  -webkit-backdrop-filter: blur(30px) saturate(150%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 22vh;
+  gap: 20px;
+  cursor: pointer;
+  z-index: 10;
+}
+.start-circle {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #99f6e4, #2dd4bf);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: #052e2b;
+  box-shadow: 0 12px 44px rgba(45, 212, 191, 0.5);
+  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+#startOverlay:hover .start-circle { transform: scale(1.06); }
+.start-text {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: center;
+  line-height: 1.6;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+.start-text small { color: rgba(241,245,249,0.6); font-weight: 500; }
+
+@media (max-width: 560px) {
+  #chordDisplay { font-size: 42px; bottom: 128px; }
+  #gestureGuide { flex-direction: column; gap: 8px; }
+  .guide-col + .guide-col { border-left: none; padding-left: 0; border-top: 1px solid var(--glass-border); padding-top: 8px; }
+  .degree-btn { min-width: 44px; padding: 6px 6px; }
+  .degree-btn .gesture { font-size: 20px; }
+}
