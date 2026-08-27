@@ -1637,26 +1637,54 @@ startOverlayEl.addEventListener("click", () => {
     // 🔥 iOS 最终方案：在点击事件中同步创建 AudioContext
     if (!synth.ctx) {
         try {
+            // 1. 创建音频上下文
             synth.ctx = new (window.AudioContext || window.webkitAudioContext)();
             console.log("✅ AudioContext 在点击事件中同步创建");
+
+            // ★★★ 关键修复 1：主动告诉 iOS 我们要使用音频会话 (针对 iPadOS) ★★★
+            if (synth.ctx && synth.ctx.audioSession) {
+                synth.ctx.audioSession.type = "play-and-record";
+                console.log("✅ 已设置 audioSession 为 play-and-record");
+            }
+
+            // ★★★ 关键修复 2：创建“静默音轨”保活 (防止被系统挂起) ★★★
+            // 创建一个音量为 0 的振荡器，让它永远运行，骗过 iOS 的“自动挂起”机制
+            try {
+                const silentOsc = synth.ctx.createOscillator();
+                const silentGain = synth.ctx.createGain();
+                silentGain.gain.value = 0; // 音量为 0，人耳听不到
+                silentOsc.connect(silentGain);
+                silentGain.connect(synth.ctx.destination);
+                silentOsc.start();
+                // 注意：这里故意不调用 stop()，让它永远运行
+                console.log("✅ 静默保活音轨已启动");
+            } catch (silentErr) {
+                // 静默音轨创建失败不影响主功能
+                console.warn("⚠️ 静默音轨创建失败:", silentErr);
+            }
+
         } catch (e) {
             console.error("❌ 创建 AudioContext 失败:", e);
         }
     }
+
+    // 2. 恢复音频上下文 (如果处于挂起状态)
     if (synth.ctx && synth.ctx.state === "suspended") {
         synth.ctx.resume();
         console.log("✅ AudioContext.resume() 在点击事件中同步调用");
     }
-    // 如果创建后依然是 suspended，再强制一次
+    
+    // 3. 二次保险：如果还是挂起，再强推一次
     if (synth.ctx && synth.ctx.state === "suspended") {
-        // 有些 iOS 版本需要连续调用两次 resume()
         synth.ctx.resume();
     }
     
+    // 4. 设置音量和界面
     synth.setVolume(Number(volumeSlider.value) / 100);
     startOverlayEl.style.display = "none";
     canvasEl.classList.remove("dimmed");
 });
+
 
 volumeSlider.addEventListener("input", () => synth.setVolume(Number(volumeSlider.value) / 100));
 if (headVolumeToggleEl) {
