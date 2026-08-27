@@ -617,9 +617,19 @@ class SynthEngine {
     this.tremLfo = null; this.tremDepthL = null; this.tremDepthR = null;
   }
   ensureContext() {
-    if (this.ctx) return;
+    if (this.ctx) {
+        // 如果已存在但挂起，尝试恢复
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+        return;
+    }
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-
+    
+    // iOS 关键：创建后立即检查并恢复
+    if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+    }
     // —— 效果器链：voice → toneFilter(低通) → 3段EQ(低/中/高) → [干: masterGain] + [湿: delay / reverb] → masterGain ——
     this.filter = this.ctx.createBiquadFilter();
     this.filter.type = "lowpass";
