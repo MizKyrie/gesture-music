@@ -1435,6 +1435,10 @@ function normToCanvas(nx, ny) {
 //  主循环
 // ============================================================
 async function main() {
+  // 🔥 iOS 提前激活音频
+  synth.ensureContext();
+  if (synth.ctx && synth.ctx.state === "suspended") synth.ctx.resume();
+  
   await setupCamera();
   resizeCanvas();
   window.addEventListener("resize", resizeCanvas);
