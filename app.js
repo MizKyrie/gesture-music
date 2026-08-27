@@ -901,15 +901,10 @@ function buildPiano() {
 // 点击钢琴键：播放该键单音并高亮（音色编辑时试单音最方便）
 function playPianoKey(midi) {
     if (auditionOn) stopAudition();
-    // 🔥 就地创建/恢复（与点击事件保持一致）
     if (!synth.ctx) {
-        try {
-            synth.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (e) {
-            console.error("❌ 创建 AudioContext 失败:", e);
-        }
+        synth.ctx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    if (synth.ctx && synth.ctx.state === "suspended") {
+    if (synth.ctx.state === "suspended") {
         synth.ctx.resume();
     }
     synth.currentKey = null;
@@ -1634,52 +1629,19 @@ async function main() {
 //  UI 事件
 // ============================================================
 startOverlayEl.addEventListener("click", () => {
-    // 🔥 iOS 最终方案：在点击事件中同步创建 AudioContext
+    // 🔥 iPadOS 18 终极裸奔方案：绝对同步，无任何异步包裹
     if (!synth.ctx) {
-        try {
-            // 1. 创建音频上下文
-            synth.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            console.log("✅ AudioContext 在点击事件中同步创建");
-
-            // ★★★ 关键修复 1：主动告诉 iOS 我们要使用音频会话 (针对 iPadOS) ★★★
-            if (synth.ctx && synth.ctx.audioSession) {
-                synth.ctx.audioSession.type = "play-and-record";
-                console.log("✅ 已设置 audioSession 为 play-and-record");
-            }
-
-            // ★★★ 关键修复 2：创建“静默音轨”保活 (防止被系统挂起) ★★★
-            // 创建一个音量为 0 的振荡器，让它永远运行，骗过 iOS 的“自动挂起”机制
-            try {
-                const silentOsc = synth.ctx.createOscillator();
-                const silentGain = synth.ctx.createGain();
-                silentGain.gain.value = 0; // 音量为 0，人耳听不到
-                silentOsc.connect(silentGain);
-                silentGain.connect(synth.ctx.destination);
-                silentOsc.start();
-                // 注意：这里故意不调用 stop()，让它永远运行
-                console.log("✅ 静默保活音轨已启动");
-            } catch (silentErr) {
-                // 静默音轨创建失败不影响主功能
-                console.warn("⚠️ 静默音轨创建失败:", silentErr);
-            }
-
-        } catch (e) {
-            console.error("❌ 创建 AudioContext 失败:", e);
-        }
+        synth.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        console.log("✅ AudioContext 已创建");
     }
-
-    // 2. 恢复音频上下文 (如果处于挂起状态)
-    if (synth.ctx && synth.ctx.state === "suspended") {
+    if (synth.ctx.state === "suspended") {
         synth.ctx.resume();
-        console.log("✅ AudioContext.resume() 在点击事件中同步调用");
+        console.log("✅ AudioContext 已恢复");
     }
-    
-    // 3. 二次保险：如果还是挂起，再强推一次
-    if (synth.ctx && synth.ctx.state === "suspended") {
+    // 二次强推（某些情况下需要两次 resume）
+    if (synth.ctx.state === "suspended") {
         synth.ctx.resume();
     }
-    
-    // 4. 设置音量和界面
     synth.setVolume(Number(volumeSlider.value) / 100);
     startOverlayEl.style.display = "none";
     canvasEl.classList.remove("dimmed");
