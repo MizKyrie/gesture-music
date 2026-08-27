@@ -2330,3 +2330,62 @@ chordResetBtn.addEventListener("click", () => {
 
 refreshToneSelect();
 main().catch((err) => { console.error(err); alert("初始化失败：请在 localhost/https 下访问并允许摄像头。\n" + err); });
+
+// ============================================================
+// 终极调试按钮（点击显示 AudioContext 状态）
+// ============================================================
+(function addStatusButton() {
+    const btn = document.createElement('button');
+    btn.textContent = '🔊';
+    btn.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 99999;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(8px);
+        border: 2px solid rgba(94,234,212,0.5);
+        color: #5eead4;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    `;
+    btn.onmouseenter = () => { btn.style.transform = 'scale(1.1)'; };
+    btn.onmouseleave = () => { btn.style.transform = 'scale(1)'; };
+    btn.onclick = function() {
+        const ctx = synth.ctx;
+        const state = ctx ? ctx.state : '未创建';
+        const vol = synth.volume;
+        const hasFilter = !!(ctx && synth.filter);
+        const hasGain = !!(ctx && synth.masterGain);
+        const dest = ctx ? ctx.destination : null;
+        let destInfo = '不可用';
+        if (dest) {
+            try {
+                destInfo = '可用 (destination 已连接)';
+            } catch(e) {
+                destInfo = '异常: ' + e.message;
+            }
+        }
+        const msg = `🔍 音频状态诊断
+━━━━━━━━━━━━━━━━━━━
+AudioContext 状态: ${state}
+音量: ${vol.toFixed(3)}
+效果器链: ${hasFilter && hasGain ? '✅ 已初始化' : '❌ 未初始化'}
+Destination: ${destInfo}
+ctx 对象: ${ctx ? '✅ 存在' : '❌ 不存在'}
+页面: ${location.href}
+━━━━━━━━━━━━━━━━━━━
+提示: 如果状态是 'suspended'，请点击「▶ 开始」后再次点击此按钮`;
+        alert(msg);
+    };
+    document.body.appendChild(btn);
+    console.log('✅ 调试按钮已添加到右上角');
+})();
