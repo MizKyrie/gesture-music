@@ -900,13 +900,22 @@ function buildPiano() {
 }
 // 点击钢琴键：播放该键单音并高亮（音色编辑时试单音最方便）
 function playPianoKey(midi) {
-  if (auditionOn) stopAudition();
-  synth.ensureContext();
-  if (synth.ctx && synth.ctx.state === "suspended") synth.ctx.resume();
-  synth.currentKey = null;   // 强制重播
-  const f = midiToFreq(midi);
-  synth.playNotes([f]);
-  lightPiano([f]);
+    if (auditionOn) stopAudition();
+    // 🔥 就地创建/恢复（与点击事件保持一致）
+    if (!synth.ctx) {
+        try {
+            synth.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.error("❌ 创建 AudioContext 失败:", e);
+        }
+    }
+    if (synth.ctx && synth.ctx.state === "suspended") {
+        synth.ctx.resume();
+    }
+    synth.currentKey = null;
+    const f = midiToFreq(midi);
+    synth.playNotes([f]);
+    lightPiano([f]);
 }
 const freqToMidi = (f) => Math.round(69 + 12 * Math.log2(f / 440));
 function lightPiano(freqs) {
@@ -1625,12 +1634,30 @@ async function main() {
 //  UI 事件
 // ============================================================
 startOverlayEl.addEventListener("click", () => {
-  synth.ensureContext();
-  if (synth.ctx && synth.ctx.state === "suspended") synth.ctx.resume();
-  synth.setVolume(Number(volumeSlider.value) / 100);
-  startOverlayEl.style.display = "none";
-  canvasEl.classList.remove("dimmed");
+    // 🔥 iOS 最终方案：在点击事件中同步创建 AudioContext
+    if (!synth.ctx) {
+        try {
+            synth.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            console.log("✅ AudioContext 在点击事件中同步创建");
+        } catch (e) {
+            console.error("❌ 创建 AudioContext 失败:", e);
+        }
+    }
+    if (synth.ctx && synth.ctx.state === "suspended") {
+        synth.ctx.resume();
+        console.log("✅ AudioContext.resume() 在点击事件中同步调用");
+    }
+    // 如果创建后依然是 suspended，再强制一次
+    if (synth.ctx && synth.ctx.state === "suspended") {
+        // 有些 iOS 版本需要连续调用两次 resume()
+        synth.ctx.resume();
+    }
+    
+    synth.setVolume(Number(volumeSlider.value) / 100);
+    startOverlayEl.style.display = "none";
+    canvasEl.classList.remove("dimmed");
 });
+
 volumeSlider.addEventListener("input", () => synth.setVolume(Number(volumeSlider.value) / 100));
 if (headVolumeToggleEl) {
   headVolumeToggleEl.addEventListener("change", () => {
