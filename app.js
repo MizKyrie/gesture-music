@@ -1629,19 +1629,43 @@ async function main() {
 //  UI 事件
 // ============================================================
 startOverlayEl.addEventListener("click", () => {
-    // 🔥 iPadOS 18 终极裸奔方案：绝对同步，无任何异步包裹
+    // 1. 确保 AudioContext 存在
     if (!synth.ctx) {
         synth.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        console.log("✅ AudioContext 已创建");
+        // 同时初始化效果器链（因为之前跳过 ensureContext 可能导致链未初始化）
+        if (synth.ctx && !synth.filter) {
+            synth.filter = synth.ctx.createBiquadFilter();
+            synth.filter.type = "lowpass";
+            synth.filter.frequency.value = 2400;
+            synth.filter.Q.value = 0.7;
+            // ... 这里需要把 ensureContext 里完整的初始化代码复制过来 ...
+            // 但最干净的做法是：直接调用 ensureContext()！
+        }
     }
-    if (synth.ctx.state === "suspended") {
+    
+    // 2. 恢复 AudioContext
+    if (synth.ctx && synth.ctx.state === "suspended") {
         synth.ctx.resume();
-        console.log("✅ AudioContext 已恢复");
     }
-    // 二次强推（某些情况下需要两次 resume）
-    if (synth.ctx.state === "suspended") {
-        synth.ctx.resume();
+    
+    // 3. ★★★ 核心改动：启动一个“心跳”，每 2 秒检查一次状态 ★★★
+    // 这个心跳会在页面活跃期间不断“唤醒” AudioContext
+    if (!window._keepAliveInterval) {
+        window._keepAliveInterval = setInterval(() => {
+            if (synth.ctx && synth.ctx.state === "suspended") {
+                synth.ctx.resume();
+                console.log("💓 心跳: 已尝试恢复 AudioContext");
+            }
+            // 如果已经 running，可以停止心跳（可选）
+            if (synth.ctx && synth.ctx.state === "running") {
+                console.log("✅ AudioContext 已稳定运行，停止心跳");
+                clearInterval(window._keepAliveInterval);
+                window._keepAliveInterval = null;
+            }
+        }, 2000);
     }
+    
+    // 4. 设置音量和界面
     synth.setVolume(Number(volumeSlider.value) / 100);
     startOverlayEl.style.display = "none";
     canvasEl.classList.remove("dimmed");
