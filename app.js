@@ -779,6 +779,11 @@ class SynthEngine {
   }
   // 交叉淡化：旧音按 release 淡出，新音按 attack 淡入，重叠消除咔哒声
   playNotes(freqs) {
+        // 🔥 每次播放前强制确保音频上下文激活
+    if (this.ctx && this.ctx.state === "suspended") {
+        this.ctx.resume();
+    }
+    if (!this.ctx || freqs.length === 0) return;
     if (!this.ctx || freqs.length === 0) return;
     const key = freqs.map((f) => f.toFixed(1)).join(",");
     if (key === this.currentKey) return;
@@ -1454,7 +1459,20 @@ async function main() {
   let lastVideoTime = -1;
   let cachedLeft = null, cachedRight = null, cachedLandmarks = [];
 
+    // ★★★ 在这里插入保活心跳 ★★★
+    setInterval(() => {
+        if (synth.ctx && synth.ctx.state === "suspended") {
+            synth.ctx.resume();
+            console.log("💓 保活心跳: 恢复 AudioContext");
+        }
+    }, 1000);  // 每秒一次
+  
   function loop() {
+     // 🔥 持续心跳：每次循环都尝试恢复音频上下文（如果被挂起）
+    if (synth.ctx && synth.ctx.state === "suspended") {
+        synth.ctx.resume();
+    }
+    
     const now = performance.now();
 
     // —— 检测：只在新视频帧时跑（30fps）——
